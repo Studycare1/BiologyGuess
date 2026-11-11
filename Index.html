@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Digital Book Reader</title>
+  <meta name="description" content="Read digitised books page by page — fast, offline-friendly, mobile ready.">
+  <meta name="theme-color" content="#0e1116">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">📖</span>
+      <span class="brand-text">Digital Book Reader</span>
+    </div>
+
+    <div class="header-actions">
+      <label class="search">
+        <span class="sr-only">Search books</span>
+        <input id="searchInput" type="search" placeholder="Search title or author…" autocomplete="off">
+      </label>
+      <button id="refreshBtn" class="btn ghost" title="Refresh library" aria-label="Refresh library">↻</button>
+      <button id="themeBtn" class="btn ghost" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+      <a class="btn ghost" href="upload.html" title="Admin upload panel" aria-label="Admin upload panel">＋</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="libraryStatus" class="status" role="status"></div>
+    <section id="library" class="library" aria-label="Book library"></section>
+
+    <div id="emptyState" class="empty" hidden>
+      <h2>No books yet</h2>
+      <p>Open the <a href="upload.html">Admin Upload Panel</a> to add your first book.</p>
+    </div>
+
+    <noscript>
+      <p class="status error">This reader needs JavaScript enabled.</p>
+    </noscript>
+  </main>
+
+  <!-- ================= READER ================= -->
+  <div id="reader" class="reader" hidden role="dialog" aria-modal="true" aria-label="Book reader">
+    <div class="reader-bar">
+      <button id="closeReader" class="btn ghost" title="Close (Esc)" aria-label="Close reader">✕</button>
+
+      <div class="reader-title">
+        <strong id="readerTitle">—</strong>
+        <span id="readerAuthor"></span>
+      </div>
+
+      <div class="reader-tools">
+        <button id="zoomBtn" class="btn ghost" title="Zoom" aria-label="Zoom">⤢</button>
+        <button id="fullscreenBtn" class="btn ghost" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
+      </div>
+    </div>
+
+    <div id="pageStage" class="page-stage">
+      <img id="pageImage" class="page-image" alt="">
+      <div id="pageLoading" class="page-loading"><span class="spinner"></span></div>
+      <div id="pageError" class="page-error" hidden>
+        Page load नहीं हुआ. Connection check करके दोबारा try करें.
+      </div>
+      <button id="prevBtn" class="nav-btn prev" aria-label="Previous page">‹</button>
+      <button id="nextBtn" class="nav-btn next" aria-label="Next page">›</button>
+    </div>
+
+    <div class="reader-footer">
+      <span id="pageCounter" class="counter">1 / 1</span>
+      <input id="pageSlider" class="slider" type="range" min="1" max="1" value="1" aria-label="Jump to page">
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
