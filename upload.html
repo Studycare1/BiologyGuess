@@ -21,22 +21,14 @@
 
   <main class="container admin-grid">
 
-    <!-- 0. Connection -->
+    <!-- 0. GitHub Connection -->
     <section class="card">
-      <h2>0 · Connection</h2>
+      <h2>0 · GitHub Connection</h2>
 
       <div class="field">
-        <label for="workerUrl">Worker URL</label>
-        <input id="workerUrl" type="url"
-               placeholder="https://biologyguess-upload.xxx.workers.dev"
-               autocomplete="off">
-        <p class="hint">यह एक बार भरें — browser में save हो जाएगा.</p>
-      </div>
-
-      <div class="field">
-        <label for="adminKey">Admin key</label>
-        <input id="adminKey" type="password" autocomplete="off"
-               placeholder="Worker में सेट किया हुआ ADMIN_KEY">
+        <label for="githubToken">GitHub Token (PAT)</label>
+        <input id="githubToken" type="password" autocomplete="off" placeholder="github_pat_...">
+        <p class="hint">वो टोकन जो आपने GitHub पर बनाया था (Contents: Read & Write)। ये आपके ब्राउज़र में ही सेव रहेगा।</p>
       </div>
     </section>
 
@@ -56,8 +48,7 @@
 
       <div class="field">
         <label for="slug">Slug (folder name)</label>
-        <input id="slug" placeholder="my-first-book"
-               pattern="[a-z0-9][a-z0-9\-_]*" autocomplete="off">
+        <input id="slug" placeholder="my-first-book" pattern="[a-z0-9][a-z0-9\-_]*" autocomplete="off">
         <p class="hint">Lowercase letters, numbers, <code>-</code> and <code>_</code> only.
           Pages land in <code>books/&lt;slug&gt;/page-001.jpg</code>.</p>
       </div>
@@ -67,8 +58,7 @@
     <section class="card">
       <h2>2 · Pages</h2>
 
-      <div id="dropzone" class="dropzone" tabindex="0" role="button"
-           aria-label="Choose or drop page images">
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose or drop page images">
         <input id="fileInput" type="file" accept="image/*" multiple hidden>
         <p><strong>Click to choose images</strong> or drag &amp; drop them here</p>
         <p class="hint">JPG / PNG / WebP · max 8 MB each · order = page order</p>
@@ -91,7 +81,6 @@
 
       <div class="row">
         <button id="uploadBtn" class="btn primary" type="button">Upload &amp; publish</button>
-        <button id="cancelBtn" class="btn ghost" type="button" disabled>Cancel</button>
       </div>
 
       <pre id="log" class="log" aria-live="polite"></pre>
