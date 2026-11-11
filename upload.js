@@ -1,16 +1,17 @@
 /* ============================================================
-   upload.js — Multiple Image Upload (Admin Panel)
+   upload.js — Direct GitHub Upload (No Worker Needed)
    ============================================================ */
 
 const MAX_BYTES     = 8 * 1024 * 1024;
 const ALLOWED_EXT   = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
 const PAD           = 3;
+const REPO          = 'Studycare1/BiologyGuess';
+const BRANCH        = 'main';
 
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
-  workerUrl: $('#workerUrl'),
-  key:       $('#adminKey'),
+  token:     $('#githubToken'),
   title:     $('#title'),
   author:    $('#author'),
   slug:      $('#slug'),
@@ -27,30 +28,12 @@ const els = {
   theme:     $('#themeBtn'),
 };
 
-const state = {
-  files: [],
-  uploading: false,
-  cancelled: false,
-  slugTouched: false,
-};
+const state = { files: [], uploading: false, slugTouched: false };
 
-/* ---------- Utilities ---------- */
-const slugify = (s) => String(s || '')
-  .toLowerCase().normalize('NFKD')
-  .replace(/[^a-z0-9]+/g, '-')
-  .replace(/^-+|-+$/g, '')
-  .slice(0, 64);
-
-const extOf = (name) => {
-  const e = String(name).split('.').pop().toLowerCase();
-  return e === 'jpeg' ? 'jpg' : e;
-};
-
-const formatBytes = (b) => {
-  if (b < 1024) return `${b} B`;
-  if (b < 1048576) return `${(b / 1024).toFixed(0)} KB`;
-  return `${(b / 1048576).toFixed(1)} MB`;
-};
+/* ---------- Helpers ---------- */
+const slugify = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+const extOf = (name) => { const e = String(name).split('.').pop().toLowerCase(); return e === 'jpeg' ? 'jpg' : e; };
+const formatBytes = (b) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`;
 
 function log(line) {
   const time = new Date().toLocaleTimeString();
@@ -63,9 +46,7 @@ function setStatus(text, isError = false) {
   els.status.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
 
-function setProgress(pct) {
-  els.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
-}
+function setProgress(pct) { els.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`; }
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -76,290 +57,195 @@ function fileToBase64(file) {
   });
 }
 
-/* ---------- Worker URL resolution ---------- */
-function getWorkerUrl() {
-  const fromField = els.workerUrl?.value?.trim() || '';
-  const fromStore = localStorage.getItem('dbr:workerUrl') || '';
-  return (fromField || fromStore).replace(/\/+$/, '');
-}
+/* ---------- GitHub Direct API ---------- */
+async function githubApi(path, body, method = 'PUT') {
+  const token = els.token.value.trim() || localStorage.getItem('dbr:ghToken');
+  if (!token) throw new Error('GitHub Token डालना ज़रूरी है (Step 0)');
 
-/* ---------- API ---------- */
-async function api(path, body, method = 'POST') {
-  const base = getWorkerUrl();
-  if (!base) throw new Error('Worker URL खाली है — Step 0 में भरें.');
-
-  const res = await fetch(`${base}${path}`, {
-    method,
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+    method: method,
     headers: {
-      'content-type': 'application/json',
-      'x-admin-key': els.key.value.trim(),
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify(body) : undefined
   });
 
   let data = {};
   try { data = await res.json(); } catch { /* ignore */ }
 
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
   return data;
 }
 
-/* ---------- Files ---------- */
+/* ---------- File Management ---------- */
 function addFiles(fileList) {
-  const incoming = [...fileList];
   let skipped = 0;
-
-  incoming.forEach((file) => {
+  [...fileList].forEach((file) => {
     const ext = extOf(file.name);
     if (!file.type.startsWith('image/') || !ALLOWED_EXT.includes(ext)) { skipped++; return; }
-    if (file.size > MAX_BYTES) {
-      skipped++;
-      log(`SKIP ${file.name} — ${formatBytes(file.size)} > 8 MB`);
-      return;
-    }
+    if (file.size > MAX_BYTES) { skipped++; log(`SKIP ${file.name} — 8MB से बड़ा है`); return; }
     state.files.push({ file, url: URL.createObjectURL(file), status: 'pending' });
   });
-
-  if (skipped) log(`${skipped} file(s) skipped (unsupported/too large).`);
+  if (skipped) log(`${skipped} फाइलें छोड़ दी गईं (गलत फॉर्मेट या बहुत बड़ी)`);
   renderFiles();
   els.fileInput.value = '';
 }
 
 function renderFiles() {
   els.fileList.innerHTML = '';
-
   state.files.forEach((item, index) => {
     const li = document.createElement('li');
     li.className = 'file-row';
-
-    const stateLabel = {
-      pending: 'pending',
-      uploading: 'uploading…',
-      done: '✓ done',
-      error: '✕ error',
-    }[item.status] || item.status;
-
+    const stateLabel = { pending: 'pending', uploading: 'uploading…', done: '✓ done', error: '✕ error' }[item.status] || item.status;
+    
     li.innerHTML = `
       <img src="${item.url}" alt="">
       <span class="name">${index + 1}. ${item.file.name}</span>
       <span class="size">${formatBytes(item.file.size)}</span>
       <span class="state ${item.status}">${stateLabel}</span>
-      <button class="icon-btn" data-act="up"   title="Move up"   ${index === 0 ? 'disabled' : ''}>↑</button>
-      <button class="icon-btn" data-act="down" title="Move down" ${index === state.files.length - 1 ? 'disabled' : ''}>↓</button>
-      <button class="icon-btn" data-act="del"  title="Remove">✕</button>`;
-
-    li.querySelector('[data-act="up"]').onclick   = () => move(index, -1);
-    li.querySelector('[data-act="down"]').onclick = () => move(index, 1);
-    li.querySelector('[data-act="del"]').onclick  = () => remove(index);
-
+      <button class="icon-btn" data-act="del" title="Remove">✕</button>`;
+      
+    li.querySelector('[data-act="del"]').onclick = () => {
+      if (state.uploading) return;
+      URL.revokeObjectURL(item.url);
+      state.files.splice(index, 1);
+      renderFiles();
+    };
     els.fileList.appendChild(li);
   });
-
-  const total = state.files.reduce((s, f) => s + f.file.size, 0);
-  els.summary.textContent = state.files.length
-    ? `${state.files.length} page(s) · ${formatBytes(total)}`
-    : '';
-
-  els.clearBtn.disabled  = !state.files.length || state.uploading;
+  els.summary.textContent = state.files.length ? `${state.files.length} page(s)` : '';
   els.uploadBtn.disabled = !state.files.length || state.uploading;
 }
 
-function move(index, delta) {
-  if (state.uploading) return;
-  const target = index + delta;
-  if (target < 0 || target >= state.files.length) return;
-  [state.files[index], state.files[target]] = [state.files[target], state.files[index]];
-  renderFiles();
-}
-
-function remove(index) {
-  if (state.uploading) return;
-  URL.revokeObjectURL(state.files[index].url);
-  state.files.splice(index, 1);
-  renderFiles();
-}
-
-function clearAll() {
-  if (state.uploading) return;
-  state.files.forEach((f) => URL.revokeObjectURL(f.url));
-  state.files = [];
-  renderFiles();
-}
-
-/* ---------- Validation ---------- */
-function readForm() {
-  const key   = els.key.value.trim();
-  const slug  = els.slug.value.trim().toLowerCase();
-  const title = els.title.value.trim();
-  const author= els.author.value.trim();
-
-  if (!getWorkerUrl()) throw new Error('Worker URL missing — Step 0 भरें.');
-  if (!key) throw new Error('Admin key required.');
-  if (!/^[a-z0-9][a-z0-9-_]{1,63}$/.test(slug)) {
-    throw new Error('Slug must be 2–64 chars: a-z, 0-9, "-", "_".');
-  }
-  if (!title) throw new Error('Title required.');
-  if (!state.files.length) throw new Error('Add at least one page image.');
-
-  const exts = new Set(state.files.map((f) => extOf(f.file.name)));
-  if (exts.size > 1) {
-    throw new Error(`Mixed formats (${[...exts].join(', ')}). एक ही format रखें.`);
-  }
-
-  return { key, slug, title, author, ext: [...exts][0] };
-}
-
-/* ---------- Upload ---------- */
+/* ---------- Upload Flow ---------- */
 async function uploadAll() {
-  let cfg;
-  try { cfg = readForm(); }
-  catch (err) {
-    setStatus(err.message, true);
-    log(`ERROR ${err.message}`);
-    return;
-  }
+  const key = els.token.value.trim();
+  const slug = els.slug.value.trim().toLowerCase();
+  const title = els.title.value.trim();
+  const author = els.author.value.trim();
 
-  sessionStorage.setItem('dbr:adminKey', cfg.key);
-  localStorage.setItem('dbr:workerUrl', getWorkerUrl());
+  if (!key) return setStatus('GitHub Token डालें (Step 0)', true);
+  if (!/^[a-z0-9][a-z0-9-_]{1,63}$/.test(slug)) return setStatus('Slug गलत है', true);
+  if (!title) return setStatus('Title डालें', true);
+  if (!state.files.length) return setStatus('कम से कम 1 इमेज डालें', true);
 
+  localStorage.setItem('dbr:ghToken', key);
+  
   state.uploading = true;
-  state.cancelled = false;
   els.uploadBtn.disabled = true;
-  els.cancelBtn.disabled = false;
-  els.clearBtn.disabled  = true;
   setProgress(0);
 
   const total = state.files.length;
-  let uploaded = 0, failed = 0;
+  let uploaded = 0;
+  const ext = extOf(state.files[0].file.name);
 
-  log(`Publishing "${cfg.title}" → books/${cfg.slug}/ (${total} pages)`);
+  log(`Publishing "${title}" → books/${slug}/`);
 
   for (let i = 0; i < total; i++) {
-    if (state.cancelled) { log('Cancelled by user.'); break; }
-
     const item = state.files[i];
-    const filename = `page-${String(i + 1).padStart(PAD, '0')}.${cfg.ext}`;
-
+    const filename = `page-${String(i + 1).padStart(PAD, '0')}.${ext}`;
     item.status = 'uploading';
     renderFiles();
-    setStatus(`Uploading page ${i + 1} of ${total}…`);
+    setStatus(`Uploading page ${i + 1} / ${total}...`);
 
     try {
       const content = await fileToBase64(item.file);
-      const res = await api('/api/upload', {
-        slug: cfg.slug, filename, content, overwrite: true,
-      });
+      
+      // Get SHA if file exists (for overwrite)
+      let sha = null;
+      try {
+        const existing = await githubApi(`books/${slug}/${filename}`, null, 'GET');
+        sha = existing.sha;
+      } catch (e) { /* file doesn't exist, ignore */ }
+
+      const body = { message: `upload ${filename}`, content: content.split('base64,')[1], branch: BRANCH };
+      if (sha) body.sha = sha;
+
+      await githubApi(`books/${slug}/${filename}`, body, 'PUT');
       item.status = 'done';
       uploaded++;
-      log(`OK   ${filename}${res.skipped ? ' (already existed)' : ''}`);
+      log(`OK   ${filename}`);
     } catch (err) {
       item.status = 'error';
-      failed++;
       log(`FAIL ${filename} — ${err.message}`);
     }
-
     renderFiles();
     setProgress(((i + 1) / total) * 90);
   }
 
-  if (!state.cancelled && uploaded > 0) {
-    setStatus('Updating library index…');
+  if (uploaded > 0) {
+    setStatus('Updating index.json...');
     try {
-      await api('/api/finalize', {
-        slug: cfg.slug, title: cfg.title, author: cfg.author,
-        pages: uploaded, ext: cfg.ext, pad: PAD,
+      // Update index.json
+      let indexSha = null;
+      let index = { books: [], updated: null };
+      
+      try {
+        const existingIdx = await githubApi(`books/index.json`, null, 'GET');
+        indexSha = existingIdx.sha;
+        const decoded = atob(existingIdx.content.replace(/\s+/g, ''));
+        index = JSON.parse(decoded);
+      } catch (e) { /* new index */ }
+
+      // Remove existing book with same slug
+      index.books = index.books.filter(b => b.slug !== slug);
+      
+      // Add new book
+      index.books.unshift({
+        slug, title, author, pages: uploaded, ext, pad: PAD,
+        cover: `books/${slug}/page-001.${ext}`,
+        updated: new Date().toISOString()
       });
+      
+      const newB64 = btoa(unescape(encodeURIComponent(JSON.stringify(index, null, 2) + '\n')));
+      const body = { message: 'update index.json', content: newB64, branch: BRANCH };
+      if (indexSha) body.sha = indexSha;
+
+      await githubApi(`books/index.json`, body, 'PUT');
+
       setProgress(100);
-      setStatus(
-        failed ? `Published with ${failed} failed page(s). Re-run to retry.`
-               : `Done ✅ "${cfg.title}" live in library.`,
-        failed > 0
-      );
-      log(`Published: ${uploaded} page(s), ext=${cfg.ext}.`);
-      log('Open index.html to view the book.');
+      setStatus(`Done ✅ "${title}" library में जुड़ गई!`);
+      log(`Published: ${uploaded} page(s)`);
     } catch (err) {
-      setProgress(90);
       setStatus(`Index update failed — ${err.message}`, true);
-      log(`ERROR finalize — ${err.message}`);
+      log(`ERROR index — ${err.message}`);
     }
-  } else if (state.cancelled) {
-    setStatus('Cancelled.');
   } else {
-    setStatus('No pages uploaded — index not updated.', true);
+    setStatus('कोई पेज अपलोड नहीं हुआ', true);
   }
 
   state.uploading = false;
   els.uploadBtn.disabled = false;
-  els.cancelBtn.disabled = true;
   renderFiles();
 }
 
 /* ---------- Events ---------- */
 function bindEvents() {
-  const savedTheme = localStorage.getItem('dbr:theme')
-    || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const savedTheme = localStorage.getItem('dbr:theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   applyTheme(savedTheme);
-
   els.theme.addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
     applyTheme(next);
     localStorage.setItem('dbr:theme', next);
   });
 
-  /* restore */
-  const savedKey = sessionStorage.getItem('dbr:adminKey');
-  if (savedKey) els.key.value = savedKey;
-  const savedUrl = localStorage.getItem('dbr:workerUrl');
-  if (savedUrl) els.workerUrl.value = savedUrl;
+  const savedKey = localStorage.getItem('dbr:ghToken');
+  if (savedKey) els.token.value = savedKey;
 
-  /* slug auto-fill */
   els.slug.addEventListener('input', () => { state.slugTouched = true; });
-  els.title.addEventListener('input', () => {
-    if (!state.slugTouched) els.slug.value = slugify(els.title.value);
-  });
+  els.title.addEventListener('input', () => { if (!state.slugTouched) els.slug.value = slugify(els.title.value); });
 
-  /* dropzone */
   els.dropzone.addEventListener('click', () => els.fileInput.click());
-  els.dropzone.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); els.fileInput.click(); }
-  });
   els.fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+  
+  ['dragenter', 'dragover'].forEach(evt => els.dropzone.addEventListener(evt, (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); }));
+  ['dragleave', 'dragend'].forEach(evt => els.dropzone.addEventListener(evt, () => els.dropzone.classList.remove('dragover')));
+  els.dropzone.addEventListener('drop', (e) => { e.preventDefault(); els.dropzone.classList.remove('dragover'); if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files); });
 
-  ['dragenter', 'dragover'].forEach((evt) =>
-    els.dropzone.addEventListener(evt, (e) => {
-      e.preventDefault();
-      els.dropzone.classList.add('dragover');
-    })
-  );
-  ['dragleave', 'dragend'].forEach((evt) =>
-    els.dropzone.addEventListener(evt, () => els.dropzone.classList.remove('dragover'))
-  );
-  els.dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    els.dropzone.classList.remove('dragover');
-    if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
-  });
-
-  window.addEventListener('dragover', (e) => e.preventDefault());
-  window.addEventListener('drop',     (e) => e.preventDefault());
-
-  /* buttons */
-  els.clearBtn.addEventListener('click', clearAll);
+  els.clearBtn.addEventListener('click', () => { if (state.uploading) return; state.files = []; renderFiles(); });
   els.uploadBtn.addEventListener('click', uploadAll);
-  els.cancelBtn.addEventListener('click', () => {
-    state.cancelled = true;
-    els.cancelBtn.disabled = true;
-    setStatus('Cancelling after current page…');
-  });
-
-  /* health check */
-  const url = getWorkerUrl();
-  if (url) {
-    fetch(`${url}/api/health`)
-      .then((r) => r.json())
-      .then((d) => log(`Worker ready · repo=${d.repo || '?'} · branch=${d.branch || '?'}`))
-      .catch(() => log('Worker health check failed — URL या CORS देखें.'));
-  }
 }
 
 function applyTheme(theme) {
@@ -367,7 +253,6 @@ function applyTheme(theme) {
   if (els.theme) els.theme.textContent = theme === 'light' ? '☀️' : '🌙';
 }
 
-/* ---------- Boot ---------- */
 (function init() {
   renderFiles();
   bindEvents();
