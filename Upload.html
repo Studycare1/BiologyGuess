@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Upload Panel</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin">
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⬆</span>
+      <span class="brand-text">Admin Upload Panel</span>
+    </div>
+    <div class="header-actions">
+      <a class="btn ghost" href="index.html">← Library</a>
+      <button id="themeBtn" class="btn ghost" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <main class="container admin-grid">
+
+    <!-- 1. Details -->
+    <section class="card">
+      <h2>1 · Book details</h2>
+
+      <div class="field">
+        <label for="adminKey">Admin key</label>
+        <input id="adminKey" type="password" autocomplete="off" placeholder="x-admin-key value">
+      </div>
+
+      <div class="field">
+        <label for="title">Title</label>
+        <input id="title" placeholder="My First Book" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="author">Author</label>
+        <input id="author" placeholder="Optional" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="slug">Slug (folder name)</label>
+        <input id="slug" placeholder="my-first-book" pattern="[a-z0-9][a-z0-9\-_]*" autocomplete="off">
+        <p class="hint">Lowercase letters, numbers, <code>-</code> and <code>_</code> only.
+          Pages land in <code>books/&lt;slug&gt;/page-001.jpg</code>.</p>
+      </div>
+    </section>
+
+    <!-- 2. Files -->
+    <section class="card">
+      <h2>2 · Pages</h2>
+
+      <div id="dropzone" class="dropzone" tabindex="0" role="button"
+           aria-label="Choose or drop page images">
+        <input id="fileInput" type="file" accept="image/*" multiple hidden>
+        <p><strong>Click to choose images</strong> or drag &amp; drop them here</p>
+        <p class="hint">JPG / PNG / WebP · max 8 MB each · order = page order</p>
+      </div>
+
+      <ul id="fileList" class="file-list"></ul>
+
+      <div class="row">
+        <button id="clearBtn" class="btn ghost" type="button">Clear all</button>
+        <span id="fileSummary" class="hint"></span>
+      </div>
+    </section>
+
+    <!-- 3. Upload -->
+    <section class="card">
+      <h2>3 · Upload &amp; publish</h2>
+
+      <div class="progress big"><div id="uploadBar" class="progress-bar"></div></div>
+      <p id="uploadStatus" class="hint">Idle.</p>
+
+      <div class="row">
+        <button id="uploadBtn" class="btn primary" type="button">Upload &amp; publish</button>
+        <button id="cancelBtn" class="btn ghost" type="button" disabled>Cancel</button>
+      </div>
+
+      <pre id="log" class="log" aria-live="polite"></pre>
+    </section>
+  </main>
+
+  <script src="upload.js"></script>
+</body>
+</html>
