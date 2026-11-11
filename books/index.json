@@ -1,4 +1,15 @@
 {
-  "books": [],
+  "books": [
+    {
+      "slug": "biology_chpater_1",
+      "title": "Biology",
+      "author": "StudyCare",
+      "pages": 1,
+      "ext": "jpg",
+      "pad": 3,
+      "cover": "books/biology_chpater_1/page-001.jpg",
+      "updated": "2026-11-11T16:17:44.684Z"
+    }
+  ],
   "updated": null
 }
