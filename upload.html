@@ -5,88 +5,399 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin Upload Panel</title>
   <meta name="robots" content="noindex, nofollow">
-  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --bg: #0e1116; --surface: #161b22; --border: #2a3340; --text: #e6edf3;
+      --muted: #93a1b1; --accent: #4f8cff; --danger: #ff6b6b; --ok: #3fb950;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.55 system-ui, -apple-system, sans-serif;
+    }
+    .header {
+      padding: 1rem; background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header a { color: var(--accent); text-decoration: none; font-weight: bold; }
+    .container { max-width: 700px; margin: 2rem auto; padding: 0 1rem; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;
+    }
+    h2 { margin: 0 0 1rem; font-size: 1.1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; margin-bottom: 0.4rem; font-size: 0.9rem; font-weight: 600; }
+    .field input {
+      width: 100%; padding: 0.8rem; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text); outline: none;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 2rem;
+      text-align: center; cursor: pointer; background: var(--bg); transition: 0.2s;
+    }
+    .dropzone:hover { border-color: var(--accent); }
+    .file-list { list-style: none; padding: 0; margin: 1rem 0 0; }
+    .file-row {
+      display: flex; align-items: center; gap: 1rem; padding: 0.5rem;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.5rem;
+    }
+    .file-row img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+    .file-row .name { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn {
+      padding: 0.8rem 1.5rem; border: none; border-radius: 8px;
+      font-weight: bold; cursor: pointer; transition: 0.2s;
+    }
+    .btn.primary { background: var(--accent); color: white; width: 100%; font-size: 1rem; }
+    .btn.primary:hover { opacity: 0.9; }
+    .btn.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .progress { height: 8px; background: var(--bg); border-radius: 4px; margin-bottom: 1rem; overflow: hidden; display: none; }
+    .progress-bar { height: 100%; background: var(--ok); width: 0%; transition: width 0.3s; }
+    .status { margin-bottom: 1rem; font-weight: bold; font-size: 0.9rem; }
+    .log {
+      background: #000; color: #00ff00; padding: 1rem; border-radius: 8px;
+      font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto;
+      display: none; white-space: pre-wrap;
+    }
+  </style>
 </head>
-<body class="admin">
-  <header class="site-header">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">⬆</span>
-      <span class="brand-text">Admin Upload Panel</span>
+<body>
+
+  <div class="header">
+    <div>⬆ Admin Upload Panel</div>
+    <a href="index.html">← Library</a>
+  </div>
+
+  <div class="container">
+
+    <!-- Step 1: Token -->
+    <div class="card">
+      <h2>1 · GitHub Token</h2>
+      <div class="field">
+        <label for="token">Personal Access Token (PAT)</label>
+        <input id="token" type="password" placeholder="github_pat_...">
+        <p class="hint">Contents: Read & Write permission वाला टोकन। ये आपके ब्राउज़र में सेव रहेगा।</p>
+      </div>
     </div>
-    <div class="header-actions">
-      <a class="btn ghost" href="index.html">← Library</a>
-      <button id="themeBtn" class="btn ghost" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+
+    <!-- Step 2: Details -->
+    <div class="card">
+      <h2>2 · Book Details</h2>
+      <div class="field">
+        <label for="title">Book Name</label>
+        <input id="title" placeholder="जैसे: Biology Chapter 1">
+      </div>
+      <div class="field">
+        <label for="slug">Folder Name (Slug)</label>
+        <input id="slug" placeholder="biology-chapter-1">
+        <p class="hint">इमेजेज इस फोल्डर में जाएंगी: <b>books/&lt;slug&gt;/</b></p>
+      </div>
     </div>
-  </header>
 
-  <main class="container admin-grid">
-
-    <!-- 0. GitHub Connection -->
-    <section class="card">
-      <h2>0 · GitHub Connection</h2>
-
-      <div class="field">
-        <label for="githubToken">GitHub Token (PAT)</label>
-        <input id="githubToken" type="password" autocomplete="off" placeholder="github_pat_...">
-        <p class="hint">वो टोकन जो आपने GitHub पर बनाया था (Contents: Read & Write)। ये आपके ब्राउज़र में ही सेव रहेगा।</p>
-      </div>
-    </section>
-
-    <!-- 1. Details -->
-    <section class="card">
-      <h2>1 · Book details</h2>
-
-      <div class="field">
-        <label for="title">Title</label>
-        <input id="title" placeholder="My First Book" autocomplete="off">
+    <!-- Step 3: Upload -->
+    <div class="card">
+      <h2>3 · Upload Pages</h2>
+      
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <p><b>Click to choose images</b> or drag & drop</p>
+        <p class="hint">JPG / PNG / WebP (Max 8MB per image)</p>
       </div>
 
-      <div class="field">
-        <label for="author">Author</label>
-        <input id="author" placeholder="Optional" autocomplete="off">
-      </div>
+      <ul class="file-list" id="fileList"></ul>
+      <p class="hint" id="summary"></p>
 
-      <div class="field">
-        <label for="slug">Slug (folder name)</label>
-        <input id="slug" placeholder="my-first-book" pattern="[a-z0-9][a-z0-9\-_]*" autocomplete="off">
-        <p class="hint">Lowercase letters, numbers, <code>-</code> and <code>_</code> only.
-          Pages land in <code>books/&lt;slug&gt;/page-001.jpg</code>.</p>
-      </div>
-    </section>
+      <div class="progress" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+      
+      <button class="btn primary" id="uploadBtn" disabled>Upload to GitHub</button>
+      
+      <div class="log" id="log"></div>
+    </div>
 
-    <!-- 2. Files -->
-    <section class="card">
-      <h2>2 · Pages</h2>
+  </div>
 
-      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose or drop page images">
-        <input id="fileInput" type="file" accept="image/*" multiple hidden>
-        <p><strong>Click to choose images</strong> or drag &amp; drop them here</p>
-        <p class="hint">JPG / PNG / WebP · max 8 MB each · order = page order</p>
-      </div>
+  <script>
+    // ==========================================
+    // ⚙️ CONFIGURATION
+    // ==========================================
+    const REPO = 'Studycare1/BiologyGuess';
+    const BRANCH = 'main';
+    const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 
-      <ul id="fileList" class="file-list"></ul>
+    // ==========================================
+    // UI ELEMENTS
+    // ==========================================
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      token: $('token'), title: $('title'), slug: $('slug'),
+      dropzone: $('dropzone'), fileInput: $('fileInput'),
+      fileList: $('fileList'), summary: $('summary'),
+      uploadBtn: $('uploadBtn'), status: $('status'),
+      log: $('log'), progressWrap: $('progressWrap'), progressBar: $('progressBar')
+    };
 
-      <div class="row">
-        <button id="clearBtn" class="btn ghost" type="button">Clear all</button>
-        <span id="fileSummary" class="hint"></span>
-      </div>
-    </section>
+    let files = [];
+    let isUploading = false;
 
-    <!-- 3. Upload -->
-    <section class="card">
-      <h2>3 · Upload &amp; publish</h2>
+    // ==========================================
+    // HELPERS
+    // ==========================================
+    const slugify = (text) => {
+      return text.toString().toLowerCase()
+        .replace(/\s+/g, '-')           // spaces to hyphens
+        .replace(/[^\w\-]+/g, '')       // remove non-word chars
+        .replace(/\-\-+/g, '-')         // replace multiple hyphens
+        .replace(/^-+/, '')             // trim start
+        .replace(/-+$/, '');            // trim end
+    };
 
-      <div class="progress big"><div id="uploadBar" class="progress-bar"></div></div>
-      <p id="uploadStatus" class="hint">Idle.</p>
+    const formatBytes = (bytes) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    };
 
-      <div class="row">
-        <button id="uploadBtn" class="btn primary" type="button">Upload &amp; publish</button>
-      </div>
+    const logMsg = (msg) => {
+      els.log.style.display = 'block';
+      els.log.textContent += msg + '\n';
+      els.log.scrollTop = els.log.scrollHeight;
+    };
 
-      <pre id="log" class="log" aria-live="polite"></pre>
-    </section>
-  </main>
+    // Auto-generate slug when title is typed
+    els.title.addEventListener('input', (e) => {
+      els.slug.value = slugify(e.target.value);
+      checkReady();
+    });
 
-  <script src="upload.js"></script>
+    els.token.addEventListener('input', checkReady);
+    els.slug.addEventListener('input', checkReady);
+
+    function checkReady() {
+      const ready = els.token.value.trim() && els.slug.value.trim() && files.length > 0;
+      els.uploadBtn.disabled = !ready || isUploading;
+    }
+
+    // ==========================================
+    // FILE HANDLING
+    // ==========================================
+    els.dropzone.addEventListener('click', () => els.fileInput.click());
+    els.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropzone.style.borderColor = '#4f8cff'; });
+    els.dropzone.addEventListener('dragleave', () => els.dropzone.style.borderColor = '');
+    els.dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      els.dropzone.style.borderColor = '';
+      if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+    els.fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+
+    function addFiles(fileList) {
+      for (const file of fileList) {
+        if (!file.type.startsWith('image/')) continue;
+        if (file.size > MAX_BYTES) { alert(`${file.name} 8MB से बड़ी है, इसे नहीं जोड़ा गया।`); continue; }
+        
+        files.push({
+          file: file,
+          url: URL.createObjectURL(file),
+          status: 'pending'
+        });
+      }
+      renderFiles();
+    }
+
+    function renderFiles() {
+      els.fileList.innerHTML = '';
+      files.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.className = 'file-row';
+        li.innerHTML = `
+          <img src="${item.url}" alt="">
+          <span class="name">${index + 1}. ${item.file.name}</span>
+          <span class="hint">${formatBytes(item.file.size)}</span>
+          <button class="btn" style="padding:0.2rem 0.5rem; background:var(--danger); color:white; border:none; border-radius:4px; cursor:pointer;" onclick="removeFile(${index})">✕</button>
+        `;
+        els.fileList.appendChild(li);
+      });
+      els.summary.textContent = files.length ? `कुल ${files.length} पेज` : '';
+      checkReady();
+    }
+
+    window.removeFile = (index) => {
+      if (isUploading) return;
+      files.splice(index, 1);
+      renderFiles();
+    };
+
+    // ==========================================
+    // GITHUB API UPLOAD
+    // ==========================================
+    els.uploadBtn.addEventListener('click', async () => {
+      const token = els.token.value.trim();
+      const slug = els.slug.value.trim();
+      const title = els.title.value.trim();
+
+      if (!token || !slug || files.length === 0) return;
+
+      localStorage.setItem('dbr_gh_token', token); // Save token for next time
+      
+      isUploading = true;
+      checkReady();
+      els.log.textContent = '';
+      els.progressWrap.style.display = 'block';
+      els.progressBar.style.width = '0%';
+      els.status.style.color = 'var(--accent)';
+      els.status.textContent = 'अपलोड शुरू हो रहा है...';
+
+      logMsg(`🚀 Starting upload for: ${title}`);
+      
+      let successCount = 0;
+      const ext = files[0].file.name.split('.').pop().toLowerCase() === 'jpeg' ? 'jpg' : files[0].file.name.split('.').pop().toLowerCase();
+
+      // 1. Upload Images
+      for (let i = 0; i < files.length; i++) {
+        const item = files[i];
+        const filename = `page-${String(i + 1).padStart(3, '0')}.${ext}`;
+        const path = `books/${slug}/${filename}`;
+        
+        els.status.textContent = `अपलोड हो रहा है: ${filename} (${i + 1}/${files.length})`;
+        logMsg(`⏳ Uploading ${path}...`);
+
+        try {
+          const base64 = await toBase64(item.file);
+          const cleanB64 = base64.split(',')[1];
+          
+          // Check if file exists to get SHA (for overwrite)
+          let sha = null;
+          try {
+            const getRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (getRes.ok) {
+              const getData = await getRes.json();
+              sha = getData.sha;
+            }
+          } catch (e) { /* file doesn't exist, ignore */ }
+
+          const body = {
+            message: `Upload ${filename} for ${title}`,
+            content: cleanB64,
+            branch: BRANCH
+          };
+          if (sha) body.sha = sha;
+
+          const putRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+          });
+
+          if (!putRes.ok) throw new Error(`GitHub API Error: ${putRes.status}`);
+          
+          logMsg(`✅ OK: ${filename}`);
+          successCount++;
+        } catch (err) {
+          logMsg(`❌ FAIL: ${filename} - ${err.message}`);
+        }
+
+        els.progressBar.style.width = `${((i + 1) / (files.length + 1)) * 100}%`;
+      }
+
+      // 2. Update index.json
+      if (successCount > 0) {
+        els.status.textContent = 'इंडेक्स अपडेट हो रहा है...';
+        logMsg(`⏳ Updating books/index.json...`);
+        
+        try {
+          const indexPath = 'books/index.json';
+          let indexSha = null;
+          let indexData = { books: [] };
+
+          // Get current index
+          const getIdxRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${indexPath}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (getIdxRes.ok) {
+            const idxJson = await getIdxRes.json();
+            indexSha = idxJson.sha;
+            const decoded = decodeURIComponent(escape(atob(idxJson.content.replace(/\n/g, ''))));
+            indexData = JSON.parse(decoded);
+          }
+
+          // Remove old entry if exists
+          indexData.books = indexData.books.filter(b => b.slug !== slug);
+
+          // Add new entry at top
+          indexData.books.unshift({
+            slug: slug,
+            title: title,
+            pages: successCount,
+            ext: ext,
+            cover: `books/${slug}/page-001.${ext}`,
+            updated: new Date().toISOString()
+          });
+
+          // Save index
+          const newIdxB64 = btoa(unescape(encodeURIComponent(JSON.stringify(indexData, null, 2) + '\n')));
+          const idxBody = {
+            message: `Update index for ${title}`,
+            content: newIdxB64,
+            branch: BRANCH
+          };
+          if (indexSha) idxBody.sha = indexSha;
+
+          const putIdxRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${indexPath}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(idxBody)
+          });
+
+          if (!putIdxRes.ok) throw new Error('Index update failed');
+
+          logMsg(`✅ SUCCESS: Library index updated!`);
+          els.status.style.color = 'var(--ok)';
+          els.status.textContent = `🎉 सफलतापूर्वक ${successCount} पेज अपलोड हो गए!`;
+          els.progressBar.style.width = '100%';
+          
+        } catch (err) {
+          logMsg(`❌ ERROR updating index: ${err.message}`);
+          els.status.style.color = 'var(--danger)';
+          els.status.textContent = `इमेजेज अपलोड हुईं, लेकिन इंडेक्स फेल हुआ।`;
+        }
+      } else {
+        els.status.style.color = 'var(--danger)';
+        els.status.textContent = `कोई भी इमेज अपलोड नहीं हो पाई।`;
+      }
+
+      isUploading = false;
+      checkReady();
+    });
+
+    // Helper to convert file to Base64
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // Restore token on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedToken = localStorage.getItem('dbr_gh_token');
+      if (savedToken) els.token.value = savedToken;
+      checkReady();
+    });
+  </script>
 </body>
 </html>
