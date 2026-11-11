@@ -6,7 +6,7 @@
 /* ------------------------------------------------------------
    ⚙️ CONFIG — सिर्फ़ ये दो लाइनें बदलें
    ------------------------------------------------------------ */
-const REPO   = 'your-username/your-repo';   // GitHub owner/repo
+const REPO   = 'Studycare1/BiologyGuess;   // GitHub owner/repo
 const BRANCH = 'main';                      // default branch
 
 /* ------------------------------------------------------------ */
