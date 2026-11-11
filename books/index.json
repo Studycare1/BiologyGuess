@@ -1,6 +1,16 @@
 {
   "books": [
     {
+      "slug": "biologyguess_chapter1",
+      "title": "BiologyGuess",
+      "author": "StudyCare",
+      "pages": 1,
+      "ext": "jpg",
+      "pad": 3,
+      "cover": "books/biologyguess_chapter1/page-001.jpg",
+      "updated": "2026-11-11T16:22:15.392Z"
+    },
+    {
       "slug": "biology_chpater_1",
       "title": "Biology",
       "author": "StudyCare",
