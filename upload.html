@@ -21,14 +21,28 @@
 
   <main class="container admin-grid">
 
-    <!-- 1. Details -->
+    <!-- 0. Connection -->
     <section class="card">
-      <h2>1 · Book details</h2>
+      <h2>0 · Connection</h2>
+
+      <div class="field">
+        <label for="workerUrl">Worker URL</label>
+        <input id="workerUrl" type="url"
+               placeholder="https://biologyguess-upload.xxx.workers.dev"
+               autocomplete="off">
+        <p class="hint">यह एक बार भरें — browser में save हो जाएगा.</p>
+      </div>
 
       <div class="field">
         <label for="adminKey">Admin key</label>
-        <input id="adminKey" type="password" autocomplete="off" placeholder="x-admin-key value">
+        <input id="adminKey" type="password" autocomplete="off"
+               placeholder="Worker में सेट किया हुआ ADMIN_KEY">
       </div>
+    </section>
+
+    <!-- 1. Details -->
+    <section class="card">
+      <h2>1 · Book details</h2>
 
       <div class="field">
         <label for="title">Title</label>
@@ -42,7 +56,8 @@
 
       <div class="field">
         <label for="slug">Slug (folder name)</label>
-        <input id="slug" placeholder="my-first-book" pattern="[a-z0-9][a-z0-9\-_]*" autocomplete="off">
+        <input id="slug" placeholder="my-first-book"
+               pattern="[a-z0-9][a-z0-9\-_]*" autocomplete="off">
         <p class="hint">Lowercase letters, numbers, <code>-</code> and <code>_</code> only.
           Pages land in <code>books/&lt;slug&gt;/page-001.jpg</code>.</p>
       </div>
